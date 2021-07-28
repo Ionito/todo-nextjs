@@ -16,13 +16,14 @@ import AddTodo from '../components/AddTodo'
 import { Todo } from '../types/todo'
 import { useState } from 'react'
 import faker from 'faker'
+import { connectToDatabase } from '../util/database'
 
 const initialTodos: Todo[] = [
   { id: 1, title: 'todo numero 1' },
   { id: 2, title: 'todo numero 2' },
 ]
 
-export default function Home() {
+export default function Home({ isConnected }: { isConnected: boolean }) {
   const { colorMode, toggleColorMode } = useColorMode()
   const [todos, setTodos] = useState(initialTodos)
   const iconColor = useColorModeValue(<FaSun />, <FaMoon />)
@@ -49,6 +50,14 @@ export default function Home() {
       </Head>
 
       <main>
+        {isConnected ? (
+          <h2 className="subtitle">You are connected to MongoDB</h2>
+        ) : (
+          <h2 className="subtitle">
+            You are NOT connected to MongoDB. Check the <code>README.md</code>{' '}
+            for instructions.
+          </h2>
+        )}
         <VStack p={4} h="100vh" spacing="4">
           <HStack alignSelf="flex-end">
             <Text>{colorMode}</Text>
@@ -75,4 +84,14 @@ export default function Home() {
       </main>
     </Box>
   )
+}
+
+export async function getServerSideProps(context) {
+  const { client } = await connectToDatabase()
+
+  const isConnected = !!client
+
+  return {
+    props: { isConnected },
+  }
 }
