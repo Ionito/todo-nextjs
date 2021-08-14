@@ -22,7 +22,7 @@ const AddTodo: React.FC<Props> = ({ addTodo }) => {
     addTodo(content)
     setContent('')
   }
-  const handleChange = (e: React.SyntheticEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setContent(e.target.value)
   }
   return (

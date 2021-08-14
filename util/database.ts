@@ -1,7 +1,7 @@
-import { MongoClient } from 'mongodb'
+import { Db, MongoClient, MongoClientOptions } from 'mongodb'
 
-const MONGODB_URI = process.env.MONGODB_URI
-const MONGODB_DB = process.env.MONGODB_DB
+const MONGODB_URI = process.env.MONGODB_URI!
+const MONGODB_DB = process.env.MONGODB_DB!
 
 if (!MONGODB_URI) {
   throw new Error(
@@ -15,12 +15,28 @@ if (!MONGODB_DB) {
   )
 }
 
+type MongoConnection = {
+  client: MongoClient
+  db: Db
+}
+
+declare global {
+  namespace NodeJS {
+    interface Global {
+      mongo: {
+        conn: MongoConnection | null
+        promise: Promise<MongoConnection> | null
+      }
+    }
+  }
+}
+
 /**
  * Global is used here to maintain a cached connection across hot reloads
  * in development. This prevents connections growing exponentially
  * during API Route usage.
  */
-let cached = global.mongo
+let cached = global?.mongo
 
 if (!cached) {
   cached = global.mongo = { conn: null, promise: null }
@@ -37,8 +53,10 @@ export async function connectToDatabase() {
       useUnifiedTopology: true,
     }
 
-    cached.promise = MongoClient.connect(MONGODB_URI, opts).then((client) => {
-      console.log(client)
+    cached.promise = MongoClient.connect(
+      MONGODB_URI,
+      opts as MongoClientOptions
+    ).then((client) => {
       return {
         client,
         db: client.db(MONGODB_DB),

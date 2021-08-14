@@ -1,5 +1,5 @@
+import { useContext, useEffect } from 'react'
 import Head from 'next/head'
-import Image from 'next/image'
 import {
   Box,
   VStack,
@@ -14,32 +14,25 @@ import { FaSun, FaMoon } from 'react-icons/fa'
 import TodoList from '../components/TodoList'
 import AddTodo from '../components/AddTodo'
 import { Todo } from '../types/todo'
-import { useState } from 'react'
-import faker from 'faker'
 import { connectToDatabase } from '../util/database'
+import { table, minifyRecords } from './api/utils/airtable'
+import { TodosContext } from '../contexts/TodoContext'
+import { GetServerSidePropsContext } from 'next'
 
-const initialTodos: Todo[] = [
-  { id: 1, title: 'todo numero 1' },
-  { id: 2, title: 'todo numero 2' },
-]
-
-export default function Home({ isConnected }: { isConnected: boolean }) {
+interface Props {
+  initialTodos: Todo[]
+  isConnected: boolean
+}
+const Home: React.FC<Props> = ({ isConnected, initialTodos }) => {
   const { colorMode, toggleColorMode } = useColorMode()
-  const [todos, setTodos] = useState(initialTodos)
   const iconColor = useColorModeValue(<FaSun />, <FaMoon />)
 
-  const deleteTodo = (id: number) => {
-    setTodos((todos) => todos.filter((todo) => todo.id !== id))
-  }
+  const { todos, setTodos, addTodo, deleteTodo, editTodo } =
+    useContext(TodosContext)
 
-  const addTodo = (content: string) => {
-    const newTodo: Todo = {
-      id: faker.datatype.uuid(),
-      title: content,
-      timestamp: new Date(),
-    }
-    setTodos((todos) => [...todos, newTodo])
-  }
+  useEffect(() => {
+    setTodos(initialTodos)
+  }, [])
 
   return (
     <Box h="100vh">
@@ -78,7 +71,7 @@ export default function Home({ isConnected }: { isConnected: boolean }) {
           >
             Todo App
           </Heading>
-          <TodoList todos={todos} deleteTodo={deleteTodo} />
+          <TodoList todos={todos} deleteTodo={deleteTodo} editTodo={editTodo} />
           <AddTodo addTodo={addTodo} />
         </VStack>
       </main>
@@ -86,12 +79,15 @@ export default function Home({ isConnected }: { isConnected: boolean }) {
   )
 }
 
-export async function getServerSideProps(context) {
-  const { client } = await connectToDatabase()
+export default Home
 
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+  const { client } = await connectToDatabase()
   const isConnected = !!client
 
+  const todos = await table.select().firstPage()
+
   return {
-    props: { isConnected },
+    props: { isConnected, initialTodos: minifyRecords(todos) },
   }
 }

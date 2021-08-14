@@ -9,15 +9,23 @@ import {
   Box,
 } from '@chakra-ui/react'
 import { FaTrash } from 'react-icons/fa'
-import { round } from 'lodash'
 import { Todo } from '../types/todo'
 
 interface Props {
   todos: Todo[]
-  deleteTodo: (id: number) => void
+  deleteTodo: (id: string) => void
+  editTodo: (todo: Todo) => void
 }
 
-const TodoList: React.FC<Props> = ({ todos, deleteTodo }) => {
+const TodoList: React.FC<Props> = ({ todos, deleteTodo, editTodo }) => {
+  const handleCompleted = (id: string) => () => {
+    const todoToUpdate = todos.find((todo) => todo.id === id)
+    if (todoToUpdate) {
+      todoToUpdate.completed = !todoToUpdate?.completed
+      editTodo(todoToUpdate)
+    }
+  }
+
   if (!todos.length) {
     return (
       <Box>
@@ -27,6 +35,7 @@ const TodoList: React.FC<Props> = ({ todos, deleteTodo }) => {
       </Box>
     )
   }
+
   return (
     <VStack
       divider={<StackDivider />}
@@ -39,9 +48,11 @@ const TodoList: React.FC<Props> = ({ todos, deleteTodo }) => {
       maxW={{ base: '90%', md: '80%', lg: '60%' }}
       alignItems="stretch"
     >
-      {todos.map(({ id, title }) => (
+      {todos.map(({ id, title, completed }) => (
         <HStack key={id} justifyContent="space-between">
-          <Text>{title}</Text>
+          <Text onClick={handleCompleted(id)} as={completed ? 's' : 'p'}>
+            {title}
+          </Text>
           <IconButton
             onClick={() => deleteTodo(id)}
             aria-label="delete todo item"
