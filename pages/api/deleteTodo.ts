@@ -1,3 +1,4 @@
+import { withApiAuthRequired } from '@auth0/nextjs-auth0'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { table } from './utils/airtable'
 
@@ -14,4 +15,4 @@ const deleteTodo = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 }
 
-export default deleteTodo
+export default withApiAuthRequired(deleteTodo)

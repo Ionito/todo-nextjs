@@ -1,5 +1,6 @@
 import { createContext, Dispatch, SetStateAction, useState } from 'react'
 import { Todo } from '../types/todo'
+import { useUser } from '@auth0/nextjs-auth0'
 
 type ContextProps = {
   todos: Todo[]
@@ -13,23 +14,29 @@ const TodosContext = createContext<ContextProps>({} as ContextProps)
 
 const TodosProvider: React.FC = ({ children }) => {
   const [todos, setTodos] = useState<Todo[]>([])
+  const { user, error, isLoading } = useUser()
 
   const addTodo = async (todo: string) => {
     try {
       const res = await fetch('/api/createTodo', {
         method: 'POST',
-        body: JSON.stringify({ title: todo }),
+        body: JSON.stringify({ title: todo, user_id: user?.sub }),
         headers: { 'Content-Type': 'application/json' },
       })
-      const newTodo = await res.json()
+      // try don't consider 401 error to catch
+      if (!res.ok) {
+        throw new Error('unauthorized')
+      } else {
+        const newTodo = await res.json()
 
-      setTodos((prevTodos: Todo[]) => {
-        const updatedTodos = [
-          { id: newTodo.id, title: newTodo.fields.title },
-          ...prevTodos,
-        ]
-        return updatedTodos
-      })
+        setTodos((prevTodos: Todo[]) => {
+          const updatedTodos = [
+            { id: newTodo.id, title: newTodo.fields.title },
+            ...prevTodos,
+          ]
+          return updatedTodos
+        })
+      }
     } catch (err) {
       console.error(err)
     }
