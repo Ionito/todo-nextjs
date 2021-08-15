@@ -1,10 +1,11 @@
+import { withApiAuthRequired } from '@auth0/nextjs-auth0'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { table } from './utils/airtable'
 
 const createTodo = async (req: NextApiRequest, res: NextApiResponse) => {
-  const { title } = req.body
+  const { title, user_id } = req.body
   try {
-    const createdRecords = await table.create([{ fields: { title } }])
+    const createdRecords = await table.create([{ fields: { title, user_id } }])
     const createdRecord = {
       id: createdRecords[0].id,
       fields: createdRecords[0].fields,
@@ -18,4 +19,4 @@ const createTodo = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 }
 
-export default createTodo
+export default withApiAuthRequired(createTodo)

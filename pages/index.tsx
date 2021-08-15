@@ -9,6 +9,9 @@ import {
   Text,
   useColorMode,
   useColorModeValue,
+  Center,
+  Button,
+  Link,
 } from '@chakra-ui/react'
 import { FaSun, FaMoon } from 'react-icons/fa'
 import TodoList from '../components/TodoList'
@@ -18,12 +21,15 @@ import { connectToDatabase } from '../util/database'
 import { table, minifyRecords } from './api/utils/airtable'
 import { TodosContext } from '../contexts/TodoContext'
 import { GetServerSidePropsContext } from 'next'
+import { getSession } from '@auth0/nextjs-auth0'
+import { FieldSet, Records } from 'airtable'
 
 interface Props {
   initialTodos: Todo[]
   isConnected: boolean
+  user: any
 }
-const Home: React.FC<Props> = ({ isConnected, initialTodos }) => {
+const Home: React.FC<Props> = ({ isConnected, initialTodos, user }) => {
   const { colorMode, toggleColorMode } = useColorMode()
   const iconColor = useColorModeValue(<FaSun />, <FaMoon />)
 
@@ -52,15 +58,20 @@ const Home: React.FC<Props> = ({ isConnected, initialTodos }) => {
           </h2>
         )}
         <VStack p={4} h="100vh" spacing="4">
-          <HStack alignSelf="flex-end">
-            <Text>{colorMode}</Text>
-            <IconButton
-              border="1px solid #333"
-              onClick={toggleColorMode}
-              isRound
-              aria-label="toggle color mode"
-              icon={iconColor}
-            />
+          <HStack justifyContent="space-between" w="100%">
+            <HStack>
+              {user && <Link href="/api/auth/logout">Logout</Link>}
+            </HStack>
+            <HStack>
+              <Text>{colorMode}</Text>
+              <IconButton
+                border="1px solid #333"
+                onClick={toggleColorMode}
+                isRound
+                aria-label="toggle color mode"
+                icon={iconColor}
+              />
+            </HStack>
           </HStack>
 
           <Heading
@@ -71,8 +82,22 @@ const Home: React.FC<Props> = ({ isConnected, initialTodos }) => {
           >
             Todo App
           </Heading>
-          <TodoList todos={todos} deleteTodo={deleteTodo} editTodo={editTodo} />
-          <AddTodo addTodo={addTodo} />
+          {user ? (
+            <>
+              <TodoList
+                todos={todos}
+                deleteTodo={deleteTodo}
+                editTodo={editTodo}
+              />
+              <AddTodo addTodo={addTodo} />
+            </>
+          ) : (
+            <Center h="250px">
+              <Button as="a" colorScheme="blue" href="/api/auth/login">
+                Login
+              </Button>
+            </Center>
+          )}
         </VStack>
       </main>
     </Box>
@@ -82,12 +107,25 @@ const Home: React.FC<Props> = ({ isConnected, initialTodos }) => {
 export default Home
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+  // mongoDB
   const { client } = await connectToDatabase()
   const isConnected = !!client
 
-  const todos = await table.select().firstPage()
+  // get loggedIn user
+  const session = await getSession(context.req, context.res)
 
+  // airtable
+  let todos: Records<FieldSet> = []
+  if (session?.user) {
+    todos = await table
+      .select({ filterByFormula: `user_id = '${session?.user?.sub}'` })
+      .firstPage()
+  }
   return {
-    props: { isConnected, initialTodos: minifyRecords(todos) },
+    props: {
+      isConnected,
+      initialTodos: minifyRecords(todos),
+      user: session?.user || null,
+    },
   }
 }

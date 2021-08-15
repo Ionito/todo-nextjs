@@ -1,3 +1,4 @@
+import { withApiAuthRequired } from '@auth0/nextjs-auth0'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { table } from './utils/airtable'
 
@@ -15,4 +16,4 @@ const editTodo = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 }
 
-export default editTodo
+export default withApiAuthRequired(editTodo)
